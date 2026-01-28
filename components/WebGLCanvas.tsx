@@ -1,7 +1,8 @@
 'use client';
 
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import * as THREE from 'three';
+import { EffectComposer, RenderPass, BloomEffect, DepthOfFieldEffect, EffectPass } from 'postprocessing';
 import { useRenderLoop } from '@/hooks/useRenderLoop';
 import { useCanvasResize } from '@/hooks/useCanvasResize';
 import {
@@ -15,10 +16,18 @@ export default function WebGLCanvas() {
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+  const composerRef = useRef<EffectComposer | null>(null);
+  const bloomEffectRef = useRef<BloomEffect | null>(null);
+  const dofEffectRef = useRef<DepthOfFieldEffect | null>(null);
   const objectsRef = useRef<THREE.Object3D[]>([]);
   const shaderMaterialsRef = useRef<THREE.ShaderMaterial[]>([]);
   const instancedMeshesRef = useRef<THREE.InstancedMesh[]>([]);
   const particleSystemRef = useRef<THREE.Points | null>(null);
+  
+  const [postProcessing, setPostProcessing] = useState({
+    bloom: true,
+    dof: false,
+  });
   
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -59,6 +68,29 @@ export default function WebGLCanvas() {
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(window.innerWidth, window.innerHeight);
     rendererRef.current = renderer;
+    
+    const composer = new EffectComposer(renderer);
+    composer.addPass(new RenderPass(scene, camera));
+    
+    const bloomEffect = new BloomEffect({
+      intensity: 1.5,
+      luminanceThreshold: 0.21,
+      luminanceSmoothing: 0.8,
+    });
+    
+    const dofEffect = new DepthOfFieldEffect(camera, {
+      focusDistance: 0.0,
+      focalLength: 0.05,
+      bokehScale: 3.0,
+    });
+    dofEffect.target = new THREE.Vector3(0, 0, 0);
+    
+    const effectPass = new EffectPass(camera, bloomEffect, dofEffect);
+    composer.addPass(effectPass);
+    
+    bloomEffectRef.current = bloomEffect;
+    dofEffectRef.current = dofEffect;
+    composerRef.current = composer;
     
     const objects: THREE.Object3D[] = [];
     const shaderMaterials: THREE.ShaderMaterial[] = [];
@@ -137,7 +169,6 @@ export default function WebGLCanvas() {
     objectsRef.current = objects;
     shaderMaterialsRef.current = shaderMaterials;
     
-    // Instanced meshes - thousands of small cubes
     const instancedMeshes: THREE.InstancedMesh[] = [];
     const instanceCount = 5000;
     const cubeGeo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
@@ -176,7 +207,6 @@ export default function WebGLCanvas() {
     
     instancedMeshesRef.current = instancedMeshes;
     
-    // Particle system - 10000 particles
     const particleCount = 10000;
     const particleGeo = new THREE.BufferGeometry();
     const positions = new Float32Array(particleCount * 3);
@@ -220,10 +250,11 @@ export default function WebGLCanvas() {
     particleSystemRef.current = particleSystem;
     
     const handleResize = () => {
-      if (!camera || !renderer) return;
+      if (!camera || !renderer || !composer) return;
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
+      composer.setSize(window.innerWidth, window.innerHeight);
     };
     
     window.addEventListener('resize', handleResize);
@@ -244,18 +275,27 @@ export default function WebGLCanvas() {
     };
   }, []);
   
+  useEffect(() => {
+    const bloomEffect = bloomEffectRef.current;
+    const dofEffect = dofEffectRef.current;
+    if (!bloomEffect || !dofEffect) return;
+    
+    bloomEffect.blendMode.opacity.value = postProcessing.bloom ? 1.0 : 0.0;
+    dofEffect.blendMode.opacity.value = postProcessing.dof ? 1.0 : 0.0;
+  }, [postProcessing]);
+  
   useCanvasResize(canvasRef);
   
   useRenderLoop((time) => {
     const scene = sceneRef.current;
     const camera = cameraRef.current;
-    const renderer = rendererRef.current;
+    const composer = composerRef.current;
     const objects = objectsRef.current;
     const shaderMaterials = shaderMaterialsRef.current;
     const instancedMeshes = instancedMeshesRef.current;
     const particleSystem = particleSystemRef.current;
     
-    if (!scene || !camera || !renderer) return;
+    if (!scene || !camera || !composer) return;
     
     const t = time * 0.0001;
     camera.position.x = Math.cos(t) * 15;
@@ -285,17 +325,50 @@ export default function WebGLCanvas() {
       particleSystem.geometry.attributes.position.needsUpdate = true;
     }
     
-    renderer.render(scene, camera);
+    composer.render();
   });
   
   return (
-    <canvas
-      ref={canvasRef}
-      style={{
-        display: 'block',
-        width: '100%',
-        height: '100%',
-      }}
-    />
+    <>
+      <canvas
+        ref={canvasRef}
+        style={{
+          display: 'block',
+          width: '100%',
+          height: '100%',
+        }}
+      />
+      <div style={{
+        position: 'absolute',
+        top: '20px',
+        right: '20px',
+        background: 'rgba(0, 0, 0, 0.7)',
+        padding: '15px',
+        borderRadius: '8px',
+        color: 'white',
+        fontFamily: 'monospace',
+        fontSize: '14px',
+      }}>
+        <div style={{ marginBottom: '10px', fontWeight: 'bold' }}>Post-Processing</div>
+        <label style={{ display: 'block', marginBottom: '8px', cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={postProcessing.bloom}
+            onChange={(e) => setPostProcessing(p => ({ ...p, bloom: e.target.checked }))}
+            style={{ marginRight: '8px' }}
+          />
+          Bloom
+        </label>
+        <label style={{ display: 'block', cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={postProcessing.dof}
+            onChange={(e) => setPostProcessing(p => ({ ...p, dof: e.target.checked }))}
+            style={{ marginRight: '8px' }}
+          />
+          Depth of Field
+        </label>
+      </div>
+    </>
   );
 }
