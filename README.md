@@ -9,15 +9,19 @@ This project provides an interactive platform for rendering complex 3D animation
 ## Features
 
 - **Multiple 3D Scenes**:
-  - Trippy: Original psychedelic scene with custom shaders, instancing, and particles
-  - Solar System: Realistic textured planets with orbital mechanics
-  - Earth: Realistic Earth with day/night textures, clouds, and atmospheric glow
-  - Star Wars Credits: Opening crawl with educational WebGL content
+  - **Trippy**: Original psychedelic scene with custom shaders, instancing, and particles
+  - **Solar System**: Realistic textured planets with orbital mechanics
+  - **Earth**: Realistic Earth with day/night textures, clouds, and atmospheric glow
+  - **Star Wars Credits**: Opening crawl with educational WebGL content
+  - **Minecraft World**: Procedural voxel terrain with biomes, torches, and day/night cycle (Heavy - may take 2-5s to load)
+- **URL-Based Scene Routing**: Direct links to scenes via `/earth`, `/minecraft`, `/space`, `/starwars`, `/trippy`
+- **Loading Indicators**: Animated spinner with timeout detection for scene transitions
+- **Error Boundaries**: Graceful error handling with user-friendly recovery options
 - **Real-Time Performance Metrics**: Monitor FPS, GPU memory, and rendering statistics
 - **Post-Processing Effects**:
   - Bloom effect for vibrant light blooms
   - Depth of Field (DoF) for cinematic focus
-  - Smooth animated transitions when changing scenes
+  - Smooth animated transitions when changing effects
 - **Custom GLSL Shaders**:
   - Noise Glow Shader
   - Procedural Pattern Shader
@@ -66,9 +70,18 @@ bun run dev
 
 ## Usage
 
+### Scene Navigation
+
+Navigate directly to specific scenes via URL:
+- [http://localhost:3000/earth](http://localhost:3000/earth) - Earth scene
+- [http://localhost:3000/minecraft](http://localhost:3000/minecraft) - Minecraft voxel world
+- [http://localhost:3000/space](http://localhost:3000/space) - Solar System
+- [http://localhost:3000/starwars](http://localhost:3000/starwars) - Star Wars credits
+- [http://localhost:3000/trippy](http://localhost:3000/trippy) - Original trippy scene
+
 ### Performance Controls
 Adjust rendering parameters in real-time:
-- **Scene Selector**: Choose between Trippy, Solar System, Earth, or Star Wars Credits
+- **Scene Selector**: Choose between Trippy, Solar System, Earth, Star Wars Credits, or Minecraft World
 - **Resolution Scale**: 0.5x to 1.0x (impacts render target resolution)
 - **Instance Count**: Number of instanced objects (100-10,000+)
 - **Particle Count**: Number of particles (1,000-50,000+)
@@ -95,6 +108,16 @@ Real-time metrics display shows:
 - **Current FPS**: Live frame rate
 - **Benchmark Status**: Current phase and progress
 - **GPU Load**: Estimated GPU utilization
+
+## Minecraft Scene Details
+
+The Minecraft World scene features:
+- **Procedural Terrain**: 300×300 blocks with Perlin noise heightmap
+- **Multi-Biome System**: Grass, desert, and snow biomes with 7 block types
+- **Optimized Rendering**: Geometry merging reduces 90,000+ meshes to ~7 merged meshes
+- **Dynamic Lighting**: ~240 torches with point lights, day/night cycle
+- **Interactive Elements**: Voxel trees, wandering sheep
+- **Performance Note**: Initial generation takes 2-5 seconds depending on device
 
 ## Available Scripts
 
