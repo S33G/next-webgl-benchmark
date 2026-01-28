@@ -11,6 +11,8 @@ export interface SceneObjects {
   shaderMaterials: THREE.ShaderMaterial[];
   update: (time: number) => void;
   dispose: () => void;
+  handleMouseMove?: (x: number, y: number) => void;
+  handleMouseDown?: (x: number, y: number, isDown: boolean) => void;
 }
 
 export function createTrippyScene(

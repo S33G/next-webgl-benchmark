@@ -10,6 +10,7 @@ import { createTrippyScene, type SceneObjects } from '@/scenes/TrippyScene';
 import { createSolarSystemScene } from '@/scenes/SolarSystemScene';
 import { createEarthScene } from '@/scenes/EarthScene';
 import { createStarWarsCreditsScene } from '@/scenes/StarWarsCreditsScene';
+import { createConwayGameOfLifeScene } from '@/scenes/ConwayGameOfLifeScene';
 
 interface WebGLCanvasProps {
   settings: BenchmarkSettings;
@@ -91,6 +92,9 @@ export default function WebGLCanvas({ settings }: WebGLCanvasProps) {
         break;
       case 'star-wars-credits':
         sceneObjects = createStarWarsCreditsScene(scene, camera, settings);
+        break;
+      case 'conway-life':
+        sceneObjects = createConwayGameOfLifeScene(scene, camera, settings);
         break;
       default:
         sceneObjects = createTrippyScene(scene, camera, settings);
@@ -186,8 +190,9 @@ export default function WebGLCanvas({ settings }: WebGLCanvasProps) {
     const camera = cameraRef.current;
     const renderer = rendererRef.current;
     const composer = composerRef.current;
+    const scene = sceneRef.current;
     
-    if (!canvas || !camera || !renderer || !composer) return;
+    if (!canvas || !camera || !renderer || !composer || !scene) return;
     
     const handleResize = () => {
       const width = window.innerWidth;
@@ -200,9 +205,63 @@ export default function WebGLCanvas({ settings }: WebGLCanvasProps) {
       composer.setSize(width, height);
     };
     
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    
+    const getMousePosition = (event: MouseEvent) => {
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+      
+      raycaster.setFromCamera(mouse, camera);
+      
+      const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+      const intersectPoint = new THREE.Vector3();
+      raycaster.ray.intersectPlane(plane, intersectPoint);
+      
+      return intersectPoint;
+    };
+    
+    const handleMouseMove = (event: MouseEvent) => {
+      const sceneObjects = sceneObjectsRef.current;
+      if (!sceneObjects || !('handleMouseMove' in sceneObjects)) return;
+      
+      const point = getMousePosition(event);
+      if (point && sceneObjects.handleMouseMove) {
+        sceneObjects.handleMouseMove(point.x, point.y);
+      }
+    };
+    
+    const handleMouseDown = (event: MouseEvent) => {
+      const sceneObjects = sceneObjectsRef.current;
+      if (!sceneObjects || !('handleMouseDown' in sceneObjects)) return;
+      
+      const point = getMousePosition(event);
+      if (point && sceneObjects.handleMouseDown) {
+        sceneObjects.handleMouseDown(point.x, point.y, true);
+      }
+    };
+    
+    const handleMouseUp = () => {
+      const sceneObjects = sceneObjectsRef.current;
+      if (!sceneObjects || !('handleMouseDown' in sceneObjects)) return;
+      
+      if (sceneObjects.handleMouseDown) {
+        sceneObjects.handleMouseDown(0, 0, false);
+      }
+    };
+    
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+    canvas.addEventListener('mousemove', handleMouseMove);
+    canvas.addEventListener('mousedown', handleMouseDown);
+    canvas.addEventListener('mouseup', handleMouseUp);
+    
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      canvas.removeEventListener('mousemove', handleMouseMove);
+      canvas.removeEventListener('mousedown', handleMouseDown);
+      canvas.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [settings.scene]);
   
   useRenderLoop(() => {
     const composer = composerRef.current;
