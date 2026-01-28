@@ -154,7 +154,7 @@ export default function ControlPanel({ settings, onChange, benchmarkRunner }: Co
           <option value="solar-system">Solar System</option>
           <option value="earth">Earth</option>
           <option value="star-wars-credits">Star Wars Credits</option>
-          <option value="minecraft">Minecraft World</option>
+          <option value="minecraft">Minecraft World (Heavy)</option>
         </select>
       </div>
 
