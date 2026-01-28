@@ -3,7 +3,7 @@ import type { BenchmarkSettings } from '@/components/ControlPanel';
 import type { SceneObjects } from './TrippyScene';
 
 const GRID_SIZE = 128;
-const CELL_SIZE = 0.5;
+const CELL_SIZE = 1.1; // Grid spans ~141 units to cover 16:9 viewport at FOV 75°
 const UPDATE_INTERVAL = 100;
 
 export function createConwayGameOfLifeScene(
@@ -32,14 +32,12 @@ export function createConwayGameOfLifeScene(
       nextGrid[i][j] = false;
     }
   }
-  
-  console.log('Conway Grid initialized. Alive cells:', grid.flat().filter(Boolean).length);
 
   const gridGroup = new THREE.Group();
   scene.add(gridGroup);
   objects.push(gridGroup);
 
-  const cellGeometry = new THREE.PlaneGeometry(CELL_SIZE * 0.95, CELL_SIZE * 0.95);
+  const cellGeometry = new THREE.PlaneGeometry(CELL_SIZE * 0.98, CELL_SIZE * 0.98);
   
   const glowShader = new THREE.ShaderMaterial({
     uniforms: {
@@ -67,6 +65,9 @@ export function createConwayGameOfLifeScene(
       }
     `,
     transparent: false,
+    side: THREE.DoubleSide,
+    depthTest: true,
+    depthWrite: true,
   });
   
   const instancedMesh = new THREE.InstancedMesh(
@@ -79,9 +80,10 @@ export function createConwayGameOfLifeScene(
   shaderMaterials.push(glowShader);
 
   const gridLinesMaterial = new THREE.LineBasicMaterial({
-    color: 0x222233,
-    opacity: 0.3,
+    color: 0x334455,
+    opacity: 0.4,
     transparent: true,
+    depthTest: false,
   });
 
   const horizontalLines = new THREE.Group();
@@ -117,7 +119,7 @@ export function createConwayGameOfLifeScene(
           const x = (j - GRID_SIZE / 2) * CELL_SIZE;
           const y = (i - GRID_SIZE / 2) * CELL_SIZE;
 
-          dummy.position.set(x, y, 0);
+          dummy.position.set(x, y, 0.05);
           dummy.updateMatrix();
           instancedMesh.setMatrixAt(instanceIndex, dummy.matrix);
           instanceIndex++;
@@ -161,23 +163,17 @@ export function createConwayGameOfLifeScene(
   };
 
   const toggleCell = (mouseX: number, mouseY: number) => {
-    const gridX = Math.floor((mouseX + GRID_SIZE * CELL_SIZE / 2) / CELL_SIZE);
-    const gridY = Math.floor((mouseY + GRID_SIZE * CELL_SIZE / 2) / CELL_SIZE);
-
-    console.log('toggleCell called:', { mouseX, mouseY, gridX, gridY, bounds: [0, GRID_SIZE] });
+    const halfGridWorld = (GRID_SIZE / 2) * CELL_SIZE;
+    const gridX = Math.floor((mouseX + halfGridWorld) / CELL_SIZE);
+    const gridY = Math.floor((mouseY + halfGridWorld) / CELL_SIZE);
 
     if (gridX >= 0 && gridX < GRID_SIZE && gridY >= 0 && gridY < GRID_SIZE) {
       if (lastMouseX !== gridX || lastMouseY !== gridY) {
         grid[gridY][gridX] = true;
         lastMouseX = gridX;
         lastMouseY = gridY;
-        console.log('Cell toggled:', gridX, gridY, 'Updating mesh...');
-  updateInstancedMesh();
-  console.log('Initial mesh update complete. instancedMesh.count:', instancedMesh.count);
-        console.log('Mesh updated. Active cells:', instancedMesh.count);
+        updateInstancedMesh();
       }
-    } else {
-      console.log('Out of bounds!');
     }
   };
 
@@ -203,14 +199,12 @@ export function createConwayGameOfLifeScene(
   };
 
   const handleMouseMove = (x: number, y: number) => {
-    console.log('handleMouseMove:', x, y, 'mouseIsDown:', mouseIsDown);
     if (mouseIsDown) {
       toggleCell(x, y);
     }
   };
 
   const handleMouseDown = (x: number, y: number, isDown: boolean) => {
-    console.log('handleMouseDown:', x, y, isDown);
     mouseIsDown = isDown;
     if (isDown) {
       lastMouseX = -1;
