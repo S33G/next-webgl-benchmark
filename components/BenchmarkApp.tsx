@@ -11,7 +11,7 @@ import { useBenchmarkRunner } from '@/hooks/useBenchmarkRunner';
 export default function BenchmarkApp() {
   const { metrics, resetMetrics } = usePerformanceMetrics();
   const [settings, setSettings] = useState<BenchmarkSettings>({
-    scene: 'trippy',
+    scene: 'earth',
     resolution: 1.0,
     instanceCount: 5000,
     particleCount: 10000,
