@@ -8,4 +8,5 @@ build/
 *.log
 .vercel
 .turbo
+.sisyphus/
 .sisyphus
