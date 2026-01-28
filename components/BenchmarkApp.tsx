@@ -21,14 +21,10 @@ const SCENE_ROUTES: Record<string, SceneType> = {
   '/rave': 'rave',
 };
 
-const SCENE_TO_ROUTE: Record<SceneType, string> = {
-  'earth': '/earth',
-  'minecraft': '/minecraft',
-  'solar-system': '/space',
-  'star-wars-credits': '/starwars',
-  'trippy': '/trippy',
-  'rave': '/rave',
-};
+// Automatically derive the reverse mapping (excluding '/' since it's an alias)
+const SCENE_TO_ROUTE = Object.entries(SCENE_ROUTES)
+  .filter(([path]) => path !== '/')
+  .reduce((acc, [path, scene]) => ({ ...acc, [scene]: path }), {} as Record<SceneType, string>);
 
 export default function BenchmarkApp() {
   const router = useRouter();
