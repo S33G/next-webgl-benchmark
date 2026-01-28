@@ -1,9 +1,5 @@
-import WebGLCanvas from '@/components/WebGLCanvas';
+import BenchmarkApp from '@/components/BenchmarkApp';
 
 export default function Home() {
-  return (
-    <main className="main-container">
-      <WebGLCanvas />
-    </main>
-  );
+  return <BenchmarkApp />;
 }

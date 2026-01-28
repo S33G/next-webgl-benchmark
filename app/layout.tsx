@@ -3,7 +3,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'WebGL Benchmark',
-  description: 'GPU performance benchmark with Three.js',
+  description: 'GPU performance testing with Three.js',
 };
 
 export default function RootLayout({
