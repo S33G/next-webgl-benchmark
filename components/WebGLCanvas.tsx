@@ -4,6 +4,11 @@ import { useRef, useEffect } from 'react';
 import * as THREE from 'three';
 import { useRenderLoop } from '@/hooks/useRenderLoop';
 import { useCanvasResize } from '@/hooks/useCanvasResize';
+import {
+  noiseGlowShader,
+  proceduralPatternShader,
+  reflectionDistortionShader,
+} from '@/shaders/customShaders';
 
 export default function WebGLCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -11,6 +16,7 @@ export default function WebGLCanvas() {
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const objectsRef = useRef<THREE.Object3D[]>([]);
+  const shaderMaterialsRef = useRef<THREE.ShaderMaterial[]>([]);
   
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -53,6 +59,7 @@ export default function WebGLCanvas() {
     rendererRef.current = renderer;
     
     const objects: THREE.Object3D[] = [];
+    const shaderMaterials: THREE.ShaderMaterial[] = [];
     const geometries = [
       new THREE.SphereGeometry(1, 32, 32),
       new THREE.BoxGeometry(1.5, 1.5, 1.5),
@@ -63,11 +70,49 @@ export default function WebGLCanvas() {
     
     for (let i = 0; i < 20; i++) {
       const geometry = geometries[i % geometries.length];
-      const material = new THREE.MeshStandardMaterial({
-        color: new THREE.Color().setHSL(Math.random(), 0.7, 0.6),
-        metalness: 0.3,
-        roughness: 0.4,
-      });
+      let material: THREE.Material;
+      
+      if (i % 3 === 0) {
+        const shaderMat = new THREE.ShaderMaterial({
+          uniforms: {
+            time: { value: 0 },
+            color: { value: new THREE.Color().setHSL(Math.random(), 0.8, 0.5) },
+          },
+          vertexShader: noiseGlowShader.vertexShader,
+          fragmentShader: noiseGlowShader.fragmentShader,
+        });
+        shaderMaterials.push(shaderMat);
+        material = shaderMat;
+      } else if (i % 3 === 1) {
+        const shaderMat = new THREE.ShaderMaterial({
+          uniforms: {
+            time: { value: 0 },
+            color1: { value: new THREE.Color().setHSL(Math.random(), 0.8, 0.5) },
+            color2: { value: new THREE.Color().setHSL(Math.random(), 0.8, 0.5) },
+          },
+          vertexShader: proceduralPatternShader.vertexShader,
+          fragmentShader: proceduralPatternShader.fragmentShader,
+        });
+        shaderMaterials.push(shaderMat);
+        material = shaderMat;
+      } else if (i % 3 === 2) {
+        const shaderMat = new THREE.ShaderMaterial({
+          uniforms: {
+            time: { value: 0 },
+            baseColor: { value: new THREE.Color().setHSL(Math.random(), 0.7, 0.6) },
+          },
+          vertexShader: reflectionDistortionShader.vertexShader,
+          fragmentShader: reflectionDistortionShader.fragmentShader,
+        });
+        shaderMaterials.push(shaderMat);
+        material = shaderMat;
+      } else {
+        material = new THREE.MeshStandardMaterial({
+          color: new THREE.Color().setHSL(Math.random(), 0.7, 0.6),
+          metalness: 0.3,
+          roughness: 0.4,
+        });
+      }
       
       const mesh = new THREE.Mesh(geometry, material);
       
@@ -88,6 +133,7 @@ export default function WebGLCanvas() {
     }
     
     objectsRef.current = objects;
+    shaderMaterialsRef.current = shaderMaterials;
     
     const handleResize = () => {
       if (!camera || !renderer) return;
@@ -117,6 +163,7 @@ export default function WebGLCanvas() {
     const camera = cameraRef.current;
     const renderer = rendererRef.current;
     const objects = objectsRef.current;
+    const shaderMaterials = shaderMaterialsRef.current;
     
     if (!scene || !camera || !renderer) return;
     
@@ -125,6 +172,10 @@ export default function WebGLCanvas() {
     camera.position.z = Math.sin(t) * 15;
     camera.position.y = 5 + Math.sin(t * 0.5) * 2;
     camera.lookAt(0, 0, 0);
+    
+    shaderMaterials.forEach(mat => {
+      mat.uniforms.time.value = time * 0.001;
+    });
     
     objects.forEach((obj, i) => {
       obj.rotation.x += 0.001 * (i % 3);
