@@ -46,174 +46,211 @@ export default function WebGLCanvas({ settings, onLoadingChange, onError }: WebG
   useEffect(() => {
     if (!canvasRef.current) return;
     
-    const scene = new THREE.Scene();
-    sceneRef.current = scene;
+    setIsLoading(true);
+    setLoadingMessage('Initializing scene...');
+    onLoadingChange?.(true);
     
-    const camera = new THREE.PerspectiveCamera(
-      75,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      1000
-    );
-    cameraRef.current = camera;
+    let hasTimedOut = false;
     
-    const renderer = new THREE.WebGLRenderer({
-      canvas: canvasRef.current,
-      antialias: true,
-    });
-    renderer.setPixelRatio(window.devicePixelRatio * settings.resolution);
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    rendererRef.current = renderer;
+    const timeoutId = setTimeout(() => {
+      hasTimedOut = true;
+      const error = new Error(`Scene loading timed out after 10 seconds. The ${settings.scene} scene may be too complex for your device.`);
+      console.error(error);
+      onError?.(error);
+      setIsLoading(false);
+      onLoadingChange?.(false);
+    }, 10000);
     
-    const composer = new EffectComposer(renderer);
-    composer.addPass(new RenderPass(scene, camera));
+    loadingTimeoutRef.current = timeoutId;
     
-    const bloomEffect = new BloomEffect({
-      intensity: 1.5,
-      luminanceThreshold: 0.21,
-      luminanceSmoothing: 0.8,
-    });
-    
-    const dofEffect = new DepthOfFieldEffect(camera, {
-      focusDistance: 0.02,
-      focalLength: 0.1,
-      bokehScale: 8.0,
-    });
-    dofEffect.target = new THREE.Vector3(0, 0, 0);
-    
-    const effectPass = new EffectPass(camera, bloomEffect, dofEffect);
-    composer.addPass(effectPass);
-    
-    bloomEffectRef.current = bloomEffect;
-    dofEffectRef.current = dofEffect;
-    composerRef.current = composer;
-    
-    let sceneObjects: SceneObjects;
-    
-    switch (settings.scene) {
-      case 'solar-system':
-        sceneObjects = createSolarSystemScene(scene, camera, settings);
-        break;
-      case 'earth':
-        sceneObjects = createEarthScene(scene, camera, settings);
-        break;
-      case 'star-wars-credits':
-        sceneObjects = createStarWarsCreditsScene(scene, camera, settings);
-        break;
-      case 'minecraft':
-        sceneObjects = createMinecraftScene(scene, camera, settings);
-        break;
-      default:
-        sceneObjects = createTrippyScene(scene, camera, settings);
-    }
-    
-    sceneObjectsRef.current = sceneObjects;
-    
-    bloomEffect.blendMode.setOpacity(0);
-    dofEffect.blendMode.setOpacity(0);
-    setEffectsEnabled(false);
-    
-    const enableTimer = setTimeout(() => {
-      setEffectsEnabled(true);
-    }, 100);
-    
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
-    
-    const getMousePosition = (event: MouseEvent): THREE.Vector3 | null => {
-      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    try {
+      const scene = new THREE.Scene();
+      sceneRef.current = scene;
       
-      raycaster.setFromCamera(mouse, camera);
+      const camera = new THREE.PerspectiveCamera(
+        75,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+      );
+      cameraRef.current = camera;
       
-      const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
-      const intersectPoint = new THREE.Vector3();
-      const result = raycaster.ray.intersectPlane(plane, intersectPoint);
+      const renderer = new THREE.WebGLRenderer({
+        canvas: canvasRef.current,
+        antialias: true,
+      });
+      renderer.setPixelRatio(window.devicePixelRatio * settings.resolution);
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      rendererRef.current = renderer;
       
-      return result;
-    };
-    
-    const handleMouseMove = (event: MouseEvent) => {
-      if (!sceneObjects.handleMouseMove) return;
+      const composer = new EffectComposer(renderer);
+      composer.addPass(new RenderPass(scene, camera));
       
-      const point = getMousePosition(event);
-      if (point) {
-        sceneObjects.handleMouseMove(point.x, point.y);
-      }
-    };
-    
-    const handleMouseDown = (event: MouseEvent) => {
-      if (!sceneObjects.handleMouseDown) return;
-      
-      mouseStateRef.current.isDown = true;
-      const point = getMousePosition(event);
-      if (point) {
-        sceneObjects.handleMouseDown(point.x, point.y, true);
-      }
-    };
-    
-    const handleMouseUp = () => {
-      if (!sceneObjects.handleMouseDown) return;
-      
-      mouseStateRef.current.isDown = false;
-      sceneObjects.handleMouseDown(0, 0, false);
-    };
-
-    const handleWheel = (event: WheelEvent) => {
-      event.preventDefault();
-      
-      const zoomSpeed = 0.1;
-      const delta = event.deltaY * -0.001;
-      const zoomFactor = 1 + delta * zoomSpeed;
-      
-      const currentDistance = camera.position.length();
-      const newDistance = currentDistance / zoomFactor;
-      
-      const minDistance = 5;
-      const maxDistance = 200;
-      const clampedDistance = Math.max(minDistance, Math.min(maxDistance, newDistance));
-      
-      camera.position.normalize().multiplyScalar(clampedDistance);
-      camera.lookAt(0, 0, 0);
-    };
-    
-    if (canvasRef.current) {
-      canvasRef.current.addEventListener('mousemove', handleMouseMove);
-      canvasRef.current.addEventListener('mousedown', handleMouseDown);
-      canvasRef.current.addEventListener('mouseup', handleMouseUp);
-      canvasRef.current.addEventListener('wheel', handleWheel, { passive: false });
-    }
-    
-    return () => {
-      clearTimeout(enableTimer);
-      
-      if (canvasRef.current) {
-        canvasRef.current.removeEventListener('mousemove', handleMouseMove);
-        canvasRef.current.removeEventListener('mousedown', handleMouseDown);
-        canvasRef.current.removeEventListener('mouseup', handleMouseUp);
-        canvasRef.current.removeEventListener('wheel', handleWheel);
-      }
-      
-      if (sceneObjectsRef.current) {
-        sceneObjectsRef.current.dispose();
-      }
-      
-      scene.traverse((object) => {
-        if (object instanceof THREE.Mesh) {
-          object.geometry.dispose();
-          if (Array.isArray(object.material)) {
-            object.material.forEach(m => m.dispose());
-          } else {
-            object.material.dispose();
-          }
-        }
+      const bloomEffect = new BloomEffect({
+        intensity: 1.5,
+        luminanceThreshold: 0.21,
+        luminanceSmoothing: 0.8,
       });
       
-      bloomEffect.dispose();
-      dofEffect.dispose();
-      composer.dispose();
-      renderer.dispose();
-    };
+      const dofEffect = new DepthOfFieldEffect(camera, {
+        focusDistance: 0.02,
+        focalLength: 0.1,
+        bokehScale: 8.0,
+      });
+      dofEffect.target = new THREE.Vector3(0, 0, 0);
+      
+      const effectPass = new EffectPass(camera, bloomEffect, dofEffect);
+      composer.addPass(effectPass);
+      
+      bloomEffectRef.current = bloomEffect;
+      dofEffectRef.current = dofEffect;
+      composerRef.current = composer;
+      
+      setLoadingMessage('Creating scene objects...');
+      
+      let sceneObjects: SceneObjects;
+      
+      switch (settings.scene) {
+        case 'solar-system':
+          sceneObjects = createSolarSystemScene(scene, camera, settings);
+          break;
+        case 'earth':
+          sceneObjects = createEarthScene(scene, camera, settings);
+          break;
+        case 'star-wars-credits':
+          sceneObjects = createStarWarsCreditsScene(scene, camera, settings);
+          break;
+        case 'minecraft':
+          setLoadingMessage('Generating terrain...');
+          sceneObjects = createMinecraftScene(scene, camera, settings);
+          break;
+        default:
+          sceneObjects = createTrippyScene(scene, camera, settings);
+      }
+      
+      if (hasTimedOut) return;
+      
+      sceneObjectsRef.current = sceneObjects;
+      
+      bloomEffect.blendMode.setOpacity(0);
+      dofEffect.blendMode.setOpacity(0);
+      setEffectsEnabled(false);
+      
+      const enableTimer = setTimeout(() => {
+        if (!hasTimedOut) {
+          setEffectsEnabled(true);
+          setIsLoading(false);
+          onLoadingChange?.(false);
+          clearTimeout(timeoutId);
+        }
+      }, 100);
+      
+      const raycaster = new THREE.Raycaster();
+      const mouse = new THREE.Vector2();
+      
+      const getMousePosition = (event: MouseEvent): THREE.Vector3 | null => {
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        
+        raycaster.setFromCamera(mouse, camera);
+        
+        const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+        const intersectPoint = new THREE.Vector3();
+        const result = raycaster.ray.intersectPlane(plane, intersectPoint);
+        
+        return result;
+      };
+      
+      const handleMouseMove = (event: MouseEvent) => {
+        if (!sceneObjects.handleMouseMove) return;
+        
+        const point = getMousePosition(event);
+        if (point) {
+          sceneObjects.handleMouseMove(point.x, point.y);
+        }
+      };
+      
+      const handleMouseDown = (event: MouseEvent) => {
+        if (!sceneObjects.handleMouseDown) return;
+        
+        mouseStateRef.current.isDown = true;
+        const point = getMousePosition(event);
+        if (point) {
+          sceneObjects.handleMouseDown(point.x, point.y, true);
+        }
+      };
+      
+      const handleMouseUp = () => {
+        if (!sceneObjects.handleMouseDown) return;
+        
+        mouseStateRef.current.isDown = false;
+        sceneObjects.handleMouseDown(0, 0, false);
+      };
+
+      const handleWheel = (event: WheelEvent) => {
+        event.preventDefault();
+        
+        const zoomSpeed = 0.1;
+        const delta = event.deltaY * -0.001;
+        const zoomFactor = 1 + delta * zoomSpeed;
+        
+        const currentDistance = camera.position.length();
+        const newDistance = currentDistance / zoomFactor;
+        
+        const minDistance = 5;
+        const maxDistance = 200;
+        const clampedDistance = Math.max(minDistance, Math.min(maxDistance, newDistance));
+        
+        camera.position.normalize().multiplyScalar(clampedDistance);
+        camera.lookAt(0, 0, 0);
+      };
+      
+      if (canvasRef.current) {
+        canvasRef.current.addEventListener('mousemove', handleMouseMove);
+        canvasRef.current.addEventListener('mousedown', handleMouseDown);
+        canvasRef.current.addEventListener('mouseup', handleMouseUp);
+        canvasRef.current.addEventListener('wheel', handleWheel, { passive: false });
+      }
+      
+      return () => {
+        clearTimeout(enableTimer);
+        clearTimeout(timeoutId);
+        
+        if (canvasRef.current) {
+          canvasRef.current.removeEventListener('mousemove', handleMouseMove);
+          canvasRef.current.removeEventListener('mousedown', handleMouseDown);
+          canvasRef.current.removeEventListener('mouseup', handleMouseUp);
+          canvasRef.current.removeEventListener('wheel', handleWheel);
+        }
+        
+        if (sceneObjectsRef.current) {
+          sceneObjectsRef.current.dispose();
+        }
+        
+        scene.traverse((object) => {
+          if (object instanceof THREE.Mesh) {
+            object.geometry.dispose();
+            if (Array.isArray(object.material)) {
+              object.material.forEach(m => m.dispose());
+            } else {
+              object.material.dispose();
+            }
+          }
+        });
+        
+        bloomEffect.dispose();
+        dofEffect.dispose();
+        composer.dispose();
+        renderer.dispose();
+      };
+    } catch (error) {
+      clearTimeout(timeoutId);
+      const err = error instanceof Error ? error : new Error(String(error));
+      console.error('Error initializing scene:', err);
+      onError?.(err);
+      setIsLoading(false);
+      onLoadingChange?.(false);
+    }
   }, [settings.scene, settings.instanceCount, settings.particleCount, settings.resolution]);
   
   useEffect(() => {
@@ -301,13 +338,16 @@ export default function WebGLCanvas({ settings, onLoadingChange, onError }: WebG
   });
   
   return (
-    <canvas
-      ref={canvasRef}
-      style={{
-        display: 'block',
-        width: '100%',
-        height: '100%',
-      }}
-    />
+    <>
+      {isLoading && <LoadingSpinner message={loadingMessage} />}
+      <canvas
+        ref={canvasRef}
+        style={{
+          display: 'block',
+          width: '100%',
+          height: '100%',
+        }}
+      />
+    </>
   );
 }
