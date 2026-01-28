@@ -3,7 +3,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import type { BenchmarkSettings } from '@/components/ControlPanel';
 import type { SceneObjects } from './TrippyScene';
 
-const TERRAIN_SIZE = 700;
+const TERRAIN_SIZE = 300;
 const BLOCK_SIZE = 1;
 const TERRAIN_HEIGHT = 150;
 const SEA_LEVEL = 15;
