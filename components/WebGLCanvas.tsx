@@ -31,6 +31,7 @@ export default function WebGLCanvas({ settings }: WebGLCanvasProps) {
     dof: settings.dof,
   });
   const [effectsEnabled, setEffectsEnabled] = useState(false);
+  const mouseStateRef = useRef({ isDown: false });
   
   useEffect(() => {
     setPostProcessing({ bloom: settings.bloom, dof: settings.dof });
@@ -110,8 +111,62 @@ export default function WebGLCanvas({ settings }: WebGLCanvasProps) {
       setEffectsEnabled(true);
     }, 100);
     
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    
+    const getMousePosition = (event: MouseEvent): THREE.Vector3 | null => {
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+      
+      raycaster.setFromCamera(mouse, camera);
+      
+      const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+      const intersectPoint = new THREE.Vector3();
+      const result = raycaster.ray.intersectPlane(plane, intersectPoint);
+      
+      return result;
+    };
+    
+    const handleMouseMove = (event: MouseEvent) => {
+      if (!sceneObjects.handleMouseMove) return;
+      
+      const point = getMousePosition(event);
+      if (point) {
+        sceneObjects.handleMouseMove(point.x, point.y);
+      }
+    };
+    
+    const handleMouseDown = (event: MouseEvent) => {
+      if (!sceneObjects.handleMouseDown) return;
+      
+      mouseStateRef.current.isDown = true;
+      const point = getMousePosition(event);
+      if (point) {
+        sceneObjects.handleMouseDown(point.x, point.y, true);
+      }
+    };
+    
+    const handleMouseUp = () => {
+      if (!sceneObjects.handleMouseDown) return;
+      
+      mouseStateRef.current.isDown = false;
+      sceneObjects.handleMouseDown(0, 0, false);
+    };
+    
+    if (canvasRef.current) {
+      canvasRef.current.addEventListener('mousemove', handleMouseMove);
+      canvasRef.current.addEventListener('mousedown', handleMouseDown);
+      canvasRef.current.addEventListener('mouseup', handleMouseUp);
+    }
+    
     return () => {
       clearTimeout(enableTimer);
+      
+      if (canvasRef.current) {
+        canvasRef.current.removeEventListener('mousemove', handleMouseMove);
+        canvasRef.current.removeEventListener('mousedown', handleMouseDown);
+        canvasRef.current.removeEventListener('mouseup', handleMouseUp);
+      }
       
       if (sceneObjectsRef.current) {
         sceneObjectsRef.current.dispose();
@@ -186,13 +241,11 @@ export default function WebGLCanvas({ settings }: WebGLCanvasProps) {
   }, [postProcessing, effectsEnabled]);
   
   useEffect(() => {
-    const canvas = canvasRef.current;
     const camera = cameraRef.current;
     const renderer = rendererRef.current;
     const composer = composerRef.current;
-    const scene = sceneRef.current;
     
-    if (!canvas || !camera || !renderer || !composer || !scene) return;
+    if (!camera || !renderer || !composer) return;
     
     const handleResize = () => {
       const width = window.innerWidth;
@@ -205,63 +258,9 @@ export default function WebGLCanvas({ settings }: WebGLCanvasProps) {
       composer.setSize(width, height);
     };
     
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
-    
-    const getMousePosition = (event: MouseEvent) => {
-      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-      
-      raycaster.setFromCamera(mouse, camera);
-      
-      const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
-      const intersectPoint = new THREE.Vector3();
-      raycaster.ray.intersectPlane(plane, intersectPoint);
-      
-      return intersectPoint;
-    };
-    
-    const handleMouseMove = (event: MouseEvent) => {
-      const sceneObjects = sceneObjectsRef.current;
-      if (!sceneObjects || !('handleMouseMove' in sceneObjects)) return;
-      
-      const point = getMousePosition(event);
-      if (point && sceneObjects.handleMouseMove) {
-        sceneObjects.handleMouseMove(point.x, point.y);
-      }
-    };
-    
-    const handleMouseDown = (event: MouseEvent) => {
-      const sceneObjects = sceneObjectsRef.current;
-      if (!sceneObjects || !('handleMouseDown' in sceneObjects)) return;
-      
-      const point = getMousePosition(event);
-      if (point && sceneObjects.handleMouseDown) {
-        sceneObjects.handleMouseDown(point.x, point.y, true);
-      }
-    };
-    
-    const handleMouseUp = () => {
-      const sceneObjects = sceneObjectsRef.current;
-      if (!sceneObjects || !('handleMouseDown' in sceneObjects)) return;
-      
-      if (sceneObjects.handleMouseDown) {
-        sceneObjects.handleMouseDown(0, 0, false);
-      }
-    };
-    
     window.addEventListener('resize', handleResize);
-    canvas.addEventListener('mousemove', handleMouseMove);
-    canvas.addEventListener('mousedown', handleMouseDown);
-    canvas.addEventListener('mouseup', handleMouseUp);
-    
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      canvas.removeEventListener('mousemove', handleMouseMove);
-      canvas.removeEventListener('mousedown', handleMouseDown);
-      canvas.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [settings.scene]);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   
   useRenderLoop(() => {
     const composer = composerRef.current;
