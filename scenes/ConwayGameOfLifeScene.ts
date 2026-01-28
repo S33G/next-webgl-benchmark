@@ -28,10 +28,12 @@ export function createConwayGameOfLifeScene(
     grid[i] = [];
     nextGrid[i] = [];
     for (let j = 0; j < GRID_SIZE; j++) {
-      grid[i][j] = Math.random() > 0.8;
+      grid[i][j] = Math.random() > 0.7;
       nextGrid[i][j] = false;
     }
   }
+  
+  console.log('Conway Grid initialized. Alive cells:', grid.flat().filter(Boolean).length);
 
   const gridGroup = new THREE.Group();
   scene.add(gridGroup);
@@ -162,13 +164,20 @@ export function createConwayGameOfLifeScene(
     const gridX = Math.floor((mouseX + GRID_SIZE * CELL_SIZE / 2) / CELL_SIZE);
     const gridY = Math.floor((mouseY + GRID_SIZE * CELL_SIZE / 2) / CELL_SIZE);
 
+    console.log('toggleCell called:', { mouseX, mouseY, gridX, gridY, bounds: [0, GRID_SIZE] });
+
     if (gridX >= 0 && gridX < GRID_SIZE && gridY >= 0 && gridY < GRID_SIZE) {
       if (lastMouseX !== gridX || lastMouseY !== gridY) {
         grid[gridY][gridX] = true;
         lastMouseX = gridX;
         lastMouseY = gridY;
-        updateInstancedMesh();
+        console.log('Cell toggled:', gridX, gridY, 'Updating mesh...');
+  updateInstancedMesh();
+  console.log('Initial mesh update complete. instancedMesh.count:', instancedMesh.count);
+        console.log('Mesh updated. Active cells:', instancedMesh.count);
       }
+    } else {
+      console.log('Out of bounds!');
     }
   };
 
@@ -194,12 +203,14 @@ export function createConwayGameOfLifeScene(
   };
 
   const handleMouseMove = (x: number, y: number) => {
+    console.log('handleMouseMove:', x, y, 'mouseIsDown:', mouseIsDown);
     if (mouseIsDown) {
       toggleCell(x, y);
     }
   };
 
   const handleMouseDown = (x: number, y: number, isDown: boolean) => {
+    console.log('handleMouseDown:', x, y, isDown);
     mouseIsDown = isDown;
     if (isDown) {
       lastMouseX = -1;

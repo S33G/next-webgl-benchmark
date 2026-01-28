@@ -137,6 +137,8 @@ export default function WebGLCanvas({ settings }: WebGLCanvasProps) {
     };
     
     const handleMouseDown = (event: MouseEvent) => {
+      console.log('WebGLCanvas handleMouseDown', event.clientX, event.clientY);
+      console.log('sceneObjects has handleMouseDown?', !!sceneObjects.handleMouseDown);
       if (!sceneObjects.handleMouseDown) return;
       
       mouseStateRef.current.isDown = true;
