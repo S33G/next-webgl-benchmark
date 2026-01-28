@@ -38,6 +38,17 @@ export default function WebGLCanvas({ settings, onLoadingChange, onError }: WebG
   const [isLoading, setIsLoading] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState('Initializing scene...');
   const mouseStateRef = useRef({ isDown: false });
+  const previousSceneRef = useRef<string>(settings.scene);
+  
+  // Immediately show loading spinner when scene changes
+  useEffect(() => {
+    if (previousSceneRef.current !== settings.scene) {
+      setIsLoading(true);
+      setLoadingMessage('Loading scene...');
+      onLoadingChange?.(true);
+      previousSceneRef.current = settings.scene;
+    }
+  }, [settings.scene, onLoadingChange]);
   
   useEffect(() => {
     setPostProcessing({ bloom: settings.bloom, dof: settings.dof });
