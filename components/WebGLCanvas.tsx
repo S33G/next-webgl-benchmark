@@ -17,6 +17,8 @@ export default function WebGLCanvas() {
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const objectsRef = useRef<THREE.Object3D[]>([]);
   const shaderMaterialsRef = useRef<THREE.ShaderMaterial[]>([]);
+  const instancedMeshesRef = useRef<THREE.InstancedMesh[]>([]);
+  const particleSystemRef = useRef<THREE.Points | null>(null);
   
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -135,6 +137,88 @@ export default function WebGLCanvas() {
     objectsRef.current = objects;
     shaderMaterialsRef.current = shaderMaterials;
     
+    // Instanced meshes - thousands of small cubes
+    const instancedMeshes: THREE.InstancedMesh[] = [];
+    const instanceCount = 5000;
+    const cubeGeo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+    const cubeMat = new THREE.MeshStandardMaterial({
+      color: 0x44aaff,
+      metalness: 0.6,
+      roughness: 0.3,
+    });
+    
+    const instancedCubes = new THREE.InstancedMesh(cubeGeo, cubeMat, instanceCount);
+    const dummy = new THREE.Object3D();
+    
+    for (let i = 0; i < instanceCount; i++) {
+      const t = i / instanceCount;
+      const radius = 12 + Math.sin(t * Math.PI * 8) * 2;
+      const angle = t * Math.PI * 20;
+      const height = Math.sin(t * Math.PI * 4) * 8;
+      
+      dummy.position.x = Math.cos(angle) * radius;
+      dummy.position.y = height;
+      dummy.position.z = Math.sin(angle) * radius;
+      
+      dummy.rotation.x = Math.random() * Math.PI;
+      dummy.rotation.y = Math.random() * Math.PI;
+      
+      const scale = 0.5 + Math.random() * 0.5;
+      dummy.scale.set(scale, scale, scale);
+      
+      dummy.updateMatrix();
+      instancedCubes.setMatrixAt(i, dummy.matrix);
+    }
+    
+    instancedCubes.instanceMatrix.needsUpdate = true;
+    scene.add(instancedCubes);
+    instancedMeshes.push(instancedCubes);
+    
+    instancedMeshesRef.current = instancedMeshes;
+    
+    // Particle system - 10000 particles
+    const particleCount = 10000;
+    const particleGeo = new THREE.BufferGeometry();
+    const positions = new Float32Array(particleCount * 3);
+    const colors = new Float32Array(particleCount * 3);
+    const sizes = new Float32Array(particleCount);
+    
+    for (let i = 0; i < particleCount; i++) {
+      const i3 = i * 3;
+      
+      const radius = 20 + Math.random() * 10;
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.random() * Math.PI;
+      
+      positions[i3] = radius * Math.sin(phi) * Math.cos(theta);
+      positions[i3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+      positions[i3 + 2] = radius * Math.cos(phi);
+      
+      const color = new THREE.Color().setHSL(Math.random(), 0.8, 0.6);
+      colors[i3] = color.r;
+      colors[i3 + 1] = color.g;
+      colors[i3 + 2] = color.b;
+      
+      sizes[i] = Math.random() * 2 + 1;
+    }
+    
+    particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    particleGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    particleGeo.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+    
+    const particleMat = new THREE.PointsMaterial({
+      size: 2,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.8,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    
+    const particleSystem = new THREE.Points(particleGeo, particleMat);
+    scene.add(particleSystem);
+    particleSystemRef.current = particleSystem;
+    
     const handleResize = () => {
       if (!camera || !renderer) return;
       camera.aspect = window.innerWidth / window.innerHeight;
@@ -152,6 +236,10 @@ export default function WebGLCanvas() {
           (obj.material as THREE.Material).dispose();
         }
       });
+      cubeGeo.dispose();
+      cubeMat.dispose();
+      particleGeo.dispose();
+      particleMat.dispose();
       renderer.dispose();
     };
   }, []);
@@ -164,6 +252,8 @@ export default function WebGLCanvas() {
     const renderer = rendererRef.current;
     const objects = objectsRef.current;
     const shaderMaterials = shaderMaterialsRef.current;
+    const instancedMeshes = instancedMeshesRef.current;
+    const particleSystem = particleSystemRef.current;
     
     if (!scene || !camera || !renderer) return;
     
@@ -181,6 +271,19 @@ export default function WebGLCanvas() {
       obj.rotation.x += 0.001 * (i % 3);
       obj.rotation.y += 0.002 * ((i + 1) % 3);
     });
+    
+    instancedMeshes.forEach(mesh => {
+      mesh.rotation.y += 0.001;
+    });
+    
+    if (particleSystem) {
+      particleSystem.rotation.y += 0.0005;
+      const positions = particleSystem.geometry.attributes.position.array as Float32Array;
+      for (let i = 0; i < positions.length; i += 3) {
+        positions[i + 1] += Math.sin(time * 0.001 + i) * 0.01;
+      }
+      particleSystem.geometry.attributes.position.needsUpdate = true;
+    }
     
     renderer.render(scene, camera);
   });
