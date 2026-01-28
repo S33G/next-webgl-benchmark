@@ -17,6 +17,7 @@ const SCENE_ROUTES: Record<string, SceneType> = {
   '/space': 'solar-system',
   '/starwars': 'star-wars-credits',
   '/trippy': 'trippy',
+  '/rave': 'rave',
 };
 
 const SCENE_TO_ROUTE: Record<SceneType, string> = {
@@ -25,6 +26,7 @@ const SCENE_TO_ROUTE: Record<SceneType, string> = {
   'solar-system': '/space',
   'star-wars-credits': '/starwars',
   'trippy': '/trippy',
+  'rave': '/rave',
 };
 
 export default function BenchmarkApp() {
