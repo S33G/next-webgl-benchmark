@@ -10,13 +10,16 @@ import { createTrippyScene, type SceneObjects } from '@/scenes/TrippyScene';
 import { createSolarSystemScene } from '@/scenes/SolarSystemScene';
 import { createEarthScene } from '@/scenes/EarthScene';
 import { createStarWarsCreditsScene } from '@/scenes/StarWarsCreditsScene';
-import { createConwayGameOfLifeScene } from '@/scenes/ConwayGameOfLifeScene';
+import { createMinecraftScene } from '@/scenes/MinecraftScene';
+import LoadingSpinner from '@/components/LoadingSpinner';
 
 interface WebGLCanvasProps {
   settings: BenchmarkSettings;
+  onLoadingChange?: (loading: boolean) => void;
+  onError?: (error: Error) => void;
 }
 
-export default function WebGLCanvas({ settings }: WebGLCanvasProps) {
+export default function WebGLCanvas({ settings, onLoadingChange, onError }: WebGLCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
@@ -25,12 +28,15 @@ export default function WebGLCanvas({ settings }: WebGLCanvasProps) {
   const bloomEffectRef = useRef<BloomEffect | null>(null);
   const dofEffectRef = useRef<DepthOfFieldEffect | null>(null);
   const sceneObjectsRef = useRef<SceneObjects | null>(null);
+  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const [postProcessing, setPostProcessing] = useState({
     bloom: settings.bloom,
     dof: settings.dof,
   });
   const [effectsEnabled, setEffectsEnabled] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadingMessage, setLoadingMessage] = useState('Initializing scene...');
   const mouseStateRef = useRef({ isDown: false });
   
   useEffect(() => {
@@ -94,8 +100,8 @@ export default function WebGLCanvas({ settings }: WebGLCanvasProps) {
       case 'star-wars-credits':
         sceneObjects = createStarWarsCreditsScene(scene, camera, settings);
         break;
-      case 'conway-life':
-        sceneObjects = createConwayGameOfLifeScene(scene, camera, settings);
+      case 'minecraft':
+        sceneObjects = createMinecraftScene(scene, camera, settings);
         break;
       default:
         sceneObjects = createTrippyScene(scene, camera, settings);
@@ -137,8 +143,6 @@ export default function WebGLCanvas({ settings }: WebGLCanvasProps) {
     };
     
     const handleMouseDown = (event: MouseEvent) => {
-      console.log('WebGLCanvas handleMouseDown', event.clientX, event.clientY);
-      console.log('sceneObjects has handleMouseDown?', !!sceneObjects.handleMouseDown);
       if (!sceneObjects.handleMouseDown) return;
       
       mouseStateRef.current.isDown = true;
@@ -154,11 +158,30 @@ export default function WebGLCanvas({ settings }: WebGLCanvasProps) {
       mouseStateRef.current.isDown = false;
       sceneObjects.handleMouseDown(0, 0, false);
     };
+
+    const handleWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      
+      const zoomSpeed = 0.1;
+      const delta = event.deltaY * -0.001;
+      const zoomFactor = 1 + delta * zoomSpeed;
+      
+      const currentDistance = camera.position.length();
+      const newDistance = currentDistance / zoomFactor;
+      
+      const minDistance = 5;
+      const maxDistance = 200;
+      const clampedDistance = Math.max(minDistance, Math.min(maxDistance, newDistance));
+      
+      camera.position.normalize().multiplyScalar(clampedDistance);
+      camera.lookAt(0, 0, 0);
+    };
     
     if (canvasRef.current) {
       canvasRef.current.addEventListener('mousemove', handleMouseMove);
       canvasRef.current.addEventListener('mousedown', handleMouseDown);
       canvasRef.current.addEventListener('mouseup', handleMouseUp);
+      canvasRef.current.addEventListener('wheel', handleWheel, { passive: false });
     }
     
     return () => {
@@ -168,6 +191,7 @@ export default function WebGLCanvas({ settings }: WebGLCanvasProps) {
         canvasRef.current.removeEventListener('mousemove', handleMouseMove);
         canvasRef.current.removeEventListener('mousedown', handleMouseDown);
         canvasRef.current.removeEventListener('mouseup', handleMouseUp);
+        canvasRef.current.removeEventListener('wheel', handleWheel);
       }
       
       if (sceneObjectsRef.current) {
