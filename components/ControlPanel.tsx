@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import type { BenchmarkMode } from '@/hooks/useBenchmarkRunner';
 
-export type SceneType = 'trippy' | 'solar-system' | 'earth' | 'star-wars-credits' | 'minecraft';
+export type SceneType = 'trippy' | 'solar-system' | 'earth' | 'star-wars-credits' | 'minecraft' | 'rave';
 
 export interface BenchmarkSettings {
   scene: SceneType;
@@ -155,6 +155,7 @@ export default function ControlPanel({ settings, onChange, benchmarkRunner }: Co
           <option value="earth">Earth</option>
           <option value="star-wars-credits">Star Wars Credits</option>
           <option value="minecraft">Minecraft World (Heavy)</option>
+          <option value="rave">Rave (Audio Reactive)</option>
         </select>
       </div>
 
