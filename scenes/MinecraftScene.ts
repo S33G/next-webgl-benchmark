@@ -5,7 +5,7 @@ import type { SceneObjects } from './TrippyScene';
 
 const TERRAIN_SIZE = 300;
 const BLOCK_SIZE = 1;
-const TERRAIN_HEIGHT = 150;
+const TERRAIN_HEIGHT = 90;
 const SEA_LEVEL = 15;
 
 function noise2D(x: number, y: number, seed: number = 0): number {
