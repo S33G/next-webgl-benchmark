@@ -8,10 +8,16 @@ This project provides an interactive platform for rendering complex 3D animation
 
 ## Features
 
+- **Multiple 3D Scenes**:
+  - Trippy: Original psychedelic scene with custom shaders, instancing, and particles
+  - Solar System: Realistic textured planets with orbital mechanics
+  - Earth: Realistic Earth with day/night textures, clouds, and atmospheric glow
+  - Star Wars Credits: Opening crawl with educational WebGL content
 - **Real-Time Performance Metrics**: Monitor FPS, GPU memory, and rendering statistics
 - **Post-Processing Effects**:
   - Bloom effect for vibrant light blooms
   - Depth of Field (DoF) for cinematic focus
+  - Smooth animated transitions when changing scenes
 - **Custom GLSL Shaders**:
   - Noise Glow Shader
   - Procedural Pattern Shader
@@ -62,10 +68,11 @@ bun run dev
 
 ### Performance Controls
 Adjust rendering parameters in real-time:
+- **Scene Selector**: Choose between Trippy, Solar System, Earth, or Star Wars Credits
 - **Resolution Scale**: 0.5x to 1.0x (impacts render target resolution)
 - **Instance Count**: Number of instanced objects (100-10,000+)
 - **Particle Count**: Number of particles (1,000-50,000+)
-- **Enable/Disable Effects**: Toggle bloom and depth of field
+- **Enable/Disable Effects**: Toggle bloom and depth of field with smooth animations
 
 ### Benchmarking
 
@@ -104,6 +111,12 @@ Contributions are welcome! Feel free to:
 - Report bugs
 - Suggest features
 - Submit pull requests
+
+## Texture Credits
+
+Planet textures sourced from Three.js examples repository:
+- Textures: [Three.js Examples](https://github.com/mrdoob/three.js/tree/dev/examples/textures/planets) - Public Domain
+- Used in Solar System and Earth scenes
 
 ## License
 
