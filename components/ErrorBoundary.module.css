@@ -1,0 +1,92 @@
+.errorContainer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+}
+
+.errorContent {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 100, 100, 0.3);
+  border-radius: 12px;
+  padding: 40px;
+  max-width: 600px;
+  width: 100%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px);
+}
+
+.errorTitle {
+  color: #ff6b6b;
+  font-size: 28px;
+  font-weight: 600;
+  margin: 0 0 16px 0;
+  text-align: center;
+}
+
+.errorMessage {
+  color: #fff;
+  font-size: 16px;
+  line-height: 1.6;
+  margin: 0 0 24px 0;
+  text-align: center;
+}
+
+.errorDetails {
+  margin: 24px 0;
+}
+
+.errorDetails summary {
+  color: #aaa;
+  cursor: pointer;
+  font-size: 14px;
+  margin-bottom: 12px;
+  user-select: none;
+}
+
+.errorDetails summary:hover {
+  color: #fff;
+}
+
+.errorStack {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: #ddd;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-x: auto;
+  padding: 16px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.resetButton {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 12px 32px;
+  transition: all 0.3s ease;
+  width: 100%;
+}
+
+.resetButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+}
+
+.resetButton:active {
+  transform: translateY(0);
+}
