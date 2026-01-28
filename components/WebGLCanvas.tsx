@@ -11,16 +11,19 @@ import { createSolarSystemScene } from '@/scenes/SolarSystemScene';
 import { createEarthScene } from '@/scenes/EarthScene';
 import { createStarWarsCreditsScene } from '@/scenes/StarWarsCreditsScene';
 import { createMinecraftScene } from '@/scenes/MinecraftScene';
-import { createRaveScene } from '@/scenes/RaveScene';
+import { createRaveScene, type RaveSceneObject } from '@/scenes/RaveScene';
+import type { RaveSceneParams } from '@/components/SceneControls';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
 interface WebGLCanvasProps {
   settings: BenchmarkSettings;
   onLoadingChange?: (loading: boolean) => void;
   onError?: (error: Error) => void;
+  onRaveSceneReady?: (updateParams: (params: RaveSceneParams) => void) => void;
+  forceRerenderKey?: number;
 }
 
-export default function WebGLCanvas({ settings, onLoadingChange, onError }: WebGLCanvasProps) {
+export default function WebGLCanvas({ settings, onLoadingChange, onError, onRaveSceneReady, forceRerenderKey }: WebGLCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sceneRef = useRef<THREE.Scene | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
@@ -148,6 +151,10 @@ export default function WebGLCanvas({ settings, onLoadingChange, onError }: WebG
       
       sceneObjectsRef.current = sceneObjects;
       
+      if (settings.scene === 'rave' && 'updateParams' in sceneObjects) {
+        onRaveSceneReady?.((sceneObjects as RaveSceneObject).updateParams);
+      }
+      
       bloomEffect.blendMode.setOpacity(0);
       dofEffect.blendMode.setOpacity(0);
       setEffectsEnabled(false);
@@ -267,7 +274,7 @@ export default function WebGLCanvas({ settings, onLoadingChange, onError }: WebG
       setIsLoading(false);
       onLoadingChange?.(false);
     }
-  }, [settings.scene, settings.instanceCount, settings.particleCount, settings.resolution]);
+  }, [settings.scene, settings.instanceCount, settings.particleCount, settings.resolution, forceRerenderKey]);
   
   useEffect(() => {
     const bloomEffect = bloomEffectRef.current;

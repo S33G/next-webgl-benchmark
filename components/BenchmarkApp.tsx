@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import WebGLCanvas from '@/components/WebGLCanvas';
 import ControlPanel, { type BenchmarkSettings, type SceneType } from '@/components/ControlPanel';
 import MetricsDisplay from '@/components/MetricsDisplay';
 import BenchmarkResults from '@/components/BenchmarkResults';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import SceneControls, { type RaveSceneParams } from '@/components/SceneControls';
 import { usePerformanceMetrics } from '@/hooks/usePerformanceMetrics';
 import { useBenchmarkRunner } from '@/hooks/useBenchmarkRunner';
 
@@ -48,12 +49,38 @@ export default function BenchmarkApp() {
     shaders: true,
   });
   
+  const [raveParams, setRaveParams] = useState<RaveSceneParams>({
+    octagonCount: 30,
+    bassBoost: 2.0,
+    colorSpeed: 0.0001,
+    rotationSpeed: 1.0,
+    scale: 1.0,
+    zoom: 0.7,
+    audioSource: 'microphone',
+    audioFile: null,
+    showParticles: true,
+    showParticleTrails: true,
+    showGlow: true,
+    showShadows: true,
+    showConnectionLines: true,
+    showEchoRings: true,
+  });
+  
+  const updateRaveSceneCallbackRef = useRef<((params: RaveSceneParams) => void) | null>(null);
+  const [forceRerender, setForceRerender] = useState(0);
+  
   useEffect(() => {
     const sceneFromPath = SCENE_ROUTES[pathname];
     if (sceneFromPath && sceneFromPath !== settings.scene) {
       setSettings(prev => ({ ...prev, scene: sceneFromPath }));
     }
   }, [pathname]);
+  
+  useEffect(() => {
+    if (updateRaveSceneCallbackRef.current && settings.scene === 'rave') {
+      updateRaveSceneCallbackRef.current(raveParams);
+    }
+  }, [raveParams, settings.scene]);
   
   const handleSettingsChange = (newSettings: BenchmarkSettings) => {
     setSettings(newSettings);
@@ -73,14 +100,32 @@ export default function BenchmarkApp() {
     resetMetrics,
   });
   
+  const handleRaveParamsChange = (params: RaveSceneParams) => {
+    setRaveParams(params);
+  };
+  
+  const handleForceRerender = () => {
+    setForceRerender(prev => prev + 1);
+  };
+  
   return (
     <ErrorBoundary>
       <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
-        <WebGLCanvas settings={settings} />
+        <WebGLCanvas 
+          settings={settings} 
+          onRaveSceneReady={(cb) => { updateRaveSceneCallbackRef.current = cb; }}
+          forceRerenderKey={forceRerender}
+        />
         <ControlPanel
           settings={settings}
           onChange={handleSettingsChange}
           benchmarkRunner={benchmarkRunner}
+        />
+        <SceneControls
+          scene={settings.scene}
+          raveParams={raveParams}
+          onParamsChange={handleRaveParamsChange}
+          onForceRerender={handleForceRerender}
         />
         <MetricsDisplay
           metrics={metrics}
