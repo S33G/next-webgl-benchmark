@@ -9,6 +9,7 @@ import type { BenchmarkSettings } from '@/components/ControlPanel';
 import { createTrippyScene, type SceneObjects } from '@/scenes/TrippyScene';
 import { createSolarSystemScene } from '@/scenes/SolarSystemScene';
 import { createEarthScene } from '@/scenes/EarthScene';
+import { createStarWarsCreditsScene } from '@/scenes/StarWarsCreditsScene';
 
 interface WebGLCanvasProps {
   settings: BenchmarkSettings;
@@ -87,6 +88,9 @@ export default function WebGLCanvas({ settings }: WebGLCanvasProps) {
         break;
       case 'earth':
         sceneObjects = createEarthScene(scene, camera, settings);
+        break;
+      case 'star-wars-credits':
+        sceneObjects = createStarWarsCreditsScene(scene, camera, settings);
         break;
       default:
         sceneObjects = createTrippyScene(scene, camera, settings);
