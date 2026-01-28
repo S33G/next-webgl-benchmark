@@ -11,6 +11,7 @@ import { createSolarSystemScene } from '@/scenes/SolarSystemScene';
 import { createEarthScene } from '@/scenes/EarthScene';
 import { createStarWarsCreditsScene } from '@/scenes/StarWarsCreditsScene';
 import { createMinecraftScene } from '@/scenes/MinecraftScene';
+import { createRaveScene } from '@/scenes/RaveScene';
 import LoadingSpinner from '@/components/LoadingSpinner';
 
 interface WebGLCanvasProps {
@@ -134,6 +135,10 @@ export default function WebGLCanvas({ settings, onLoadingChange, onError }: WebG
         case 'minecraft':
           setLoadingMessage('Generating terrain...');
           sceneObjects = createMinecraftScene(scene, camera, settings);
+          break;
+        case 'rave':
+          setLoadingMessage('Requesting microphone access...');
+          sceneObjects = createRaveScene(scene, camera, settings);
           break;
         default:
           sceneObjects = createTrippyScene(scene, camera, settings);
